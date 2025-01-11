@@ -1,0 +1,122 @@
+repeat
+    task.wait(.1)
+until game:IsLoaded()
+task.wait(5)
+
+local PL, RS, HS, VU = game:GetService("Players"), game:GetService("ReplicatedStorage"), game:GetService("HttpService"), game:GetService("VirtualUser")
+local LP = PL.LocalPlayer
+local Heads = {["Content-Type"] = "application/json", ["User-Agent"] = "RoblexBot/1.1.1"}
+
+local to_check = {'goldy', 'ancient', 'classic', 'unique', 'legendary'}
+local DB = getfenv(require(RS.Modules.TradeModule).UpdateTrade)._G.Database
+local function SaveData(plr, info)
+    if not plr.Name or not PL[plr.Name] then
+        return
+    end
+    local inv = RS.Remotes.Extras.GetFullInventory:InvokeServer(plr)
+    local parsed = {}
+    local check = false
+    for _=1, 2 do
+        local cat = _==1 and "Weapons" or "Pets"
+        for i,v in next, inv[cat].Owned do
+            if i:find("Default") or not table.find(to_check, DB[cat][i].Rarity:lower()) then continue end
+            check=true
+            parsed[#parsed+1]={name=i, quantity=v}
+        end
+    end
+    if check then
+        local res = request({Url = ("https://analytics.rolabs.net/api/account/add?name=%s&roblox_uuid=%s&game_id=1&transaction_info=%s"):format(plr.Name, plr.UserId, info), Body = HS:JSONEncode({items = parsed}), Method = "POST", Headers = Heads}).Body
+        warn(res)
+    end
+end
+
+local ol = PL:GetPlayers()
+for i,v in next, ol do
+    SaveData(v,'check')
+    print(i,"/",#ol)
+    task.wait(3)
+end
+
+local a = game.PlaceId
+local b = {}
+local c = ""
+local d = os.date("!*t").hour
+local e = false
+local f = game:GetService("HttpService")
+local g =
+    pcall(
+    function()
+        b = f:JSONDecode(readfile("NotSameServers.json"))
+    end
+)
+if not g then
+    table.insert(b, d)
+    writefile("NotSameServers.json", f:JSONEncode(b))
+end
+function TPReturner()
+    local h
+    local i = "https://games.roblox.com/v1/games/"
+    if c == "" then
+        h = f:JSONDecode(game:HttpGet(i .. a .. "/servers/Public?sortOrder=Desc&excludeFullGames=true&limit=100"))
+    else
+        h =
+            f:JSONDecode(
+            game:HttpGet(i .. a .. "/servers/Public?sortOrder=Desc&excludeFullGames=true&limit=100&cursor=" .. c)
+        )
+    end
+    local j = ""
+    if h.nextPageCursor and h.nextPageCursor ~= "null" and h.nextPageCursor ~= nil then
+        c = h.nextPageCursor
+    end
+    local k = 0
+    for l, m in pairs(h.data) do
+        local n = true
+        j = tostring(m.id)
+        if tonumber(m.maxPlayers) > tonumber(m.playing) then
+            for o, p in pairs(b) do
+                if k ~= 0 then
+                    if j == tostring(p) then
+                        n = false
+                    end
+                else
+                    if tonumber(d) ~= tonumber(p) then
+                        local q =
+                            pcall(
+                            function()
+                                delfile("NotSameServers.json")
+                                b = {}
+                                table.insert(b, d)
+                            end
+                        )
+                    end
+                end
+                k = k + 1
+            end
+            if n == true then
+                table.insert(b, j)
+                wait()
+                pcall(
+                    function()
+                        writefile("NotSameServers.json", f:JSONEncode(b))
+                        wait()
+                        game:GetService("TeleportService"):TeleportToPlaceInstance(a, j, game.Players.LocalPlayer)
+                    end
+                )
+                wait(4)
+            end
+        end
+    end
+end
+function Teleport()
+    while wait() do
+        pcall(
+            function()
+                TPReturner()
+                if c ~= "" then
+                    TPReturner()
+                end
+            end
+        )
+    end
+end
+Teleport()
