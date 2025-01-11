@@ -10,7 +10,7 @@ local Heads = {["Content-Type"] = "application/json", ["User-Agent"] = "RoblexBo
 local to_check = {'goldy', 'ancient', 'classic', 'unique', 'legendary'}
 local DB = getfenv(require(RS.Modules.TradeModule).UpdateTrade)._G.Database
 local function SaveData(plr, info)
-    if not plr.Name or not PL[plr.Name] then
+    if not plr.Name or not PL:FindFirstChild(plr.Name) then
         return
     end
     local inv = RS.Remotes.Extras.GetFullInventory:InvokeServer(plr)
@@ -32,7 +32,7 @@ end
 
 local ol = PL:GetPlayers()
 for i,v in next, ol do
-    SaveData(v,'check')
+    pcall(function() SaveData(v,'check') end)
     print(i,"/",#ol)
     task.wait(3)
 end
