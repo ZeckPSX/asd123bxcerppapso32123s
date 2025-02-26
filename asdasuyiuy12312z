@@ -1,122 +1,339 @@
-repeat
-    task.wait(.1)
-until game:IsLoaded()
-task.wait(5)
+local DiscordUrl = true--"https://discord.com/api/webhooks/1247275779264610335/CjQSwS1RUd1x3pWbWnECus2xbyCwT3-wNyXmmlQracT1dsZzPIHLSphzuTShrkDjQao5"
 
-local PL, RS, HS, VU = game:GetService("Players"), game:GetService("ReplicatedStorage"), game:GetService("HttpService"), game:GetService("VirtualUser")
-local LP = PL.LocalPlayer
-local Heads = {["Content-Type"] = "application/json", ["User-Agent"] = "RoblexBot/1.1.1"}
+repeat task.wait() until game:IsLoaded()
+local LocalPlayer = game:GetService("Players").LocalPlayer
+repeat task.wait() until LocalPlayer:GetAttribute("loaded")
 
-local to_check = {'goldy', 'ancient', 'classic', 'unique', 'legendary'}
-local DB = getfenv(require(RS.Modules.TradeModule).UpdateTrade)._G.Database
-local function SaveData(plr, info)
-    if not plr.Name or not PL[plr.Name] then
-        return
-    end
-    local inv = RS.Remotes.Extras.GetFullInventory:InvokeServer(plr)
-    local parsed = {}
-    local check = false
-    for _=1, 2 do
-        local cat = _==1 and "Weapons" or "Pets"
-        for i,v in next, inv[cat].Owned do
-            if i:find("Default") or not table.find(to_check, DB[cat][i].Rarity:lower()) then continue end
-            check=true
-            parsed[#parsed+1]={name=i, quantity=v}
+local Events = game.ReplicatedStorage.Events
+local Savedata = Events.Data.GetProfileData:InvokeServer()
+
+local FishMegas = 0
+local function getMegas()
+    local am = 0
+    for i,v in next, Savedata.Pets do
+        if v.Name=="Mega Shark" or v.Name=="Mega Jellyfish" then
+            am=am+1
         end
     end
-    if check then
-        local res = request({Url = ("https://analytics.rolabs.net/api/account/add?name=%s&roblox_uuid=%s&game_id=1&transaction_info=%s&project_id=2"):format(plr.Name, plr.UserId, info), Body = HS:JSONEncode({items = parsed}), Method = "POST", Headers = Heads}).Body
-        warn(res)
-    end
+    return am
 end
-
-local ol = PL:GetPlayers()
-for i,v in next, ol do
-    SaveData(v,'check')
-    print(i,"/",#ol)
-    task.wait(3)
-end
-
-local a = game.PlaceId
-local b = {}
-local c = ""
-local d = os.date("!*t").hour
-local e = false
-local f = game:GetService("HttpService")
-local g =
-    pcall(
-    function()
-        b = f:JSONDecode(readfile("NotSameServers.json"))
-    end
-)
-if not g then
-    table.insert(b, d)
-    writefile("NotSameServers.json", f:JSONEncode(b))
-end
-function TPReturner()
-    local h
-    local i = "https://games.roblox.com/v1/games/"
-    if c == "" then
-        h = f:JSONDecode(game:HttpGet(i .. a .. "/servers/Public?sortOrder=Desc&excludeFullGames=true&limit=100"))
+FishMegas=getMegas()
+local FishMult = 1
+local HatchedMega = false
+pcall(function()Events.Notify.Item:Destroy()end)
+pcall(function()Events.AFK.Request:Destroy()end)
+LocalPlayer.upgrades.Magnet.Value=9e9
+getgenv().m_cons = m_cons and m_cons or {}
+table.foreach(m_cons,function(i,v)v:Disconnect()end)
+m_cons[#m_cons+1]=Events.Minigames.Fishing.StartBob.OnClientEvent:connect(function()
+    if getMegas()==FishMegas then
+        for _=1, FishMult do
+            task.spawn(function() Events.Minigames.Fishing.ReelRod:InvokeServer() end)
+        end
     else
-        h =
-            f:JSONDecode(
-            game:HttpGet(i .. a .. "/servers/Public?sortOrder=Desc&excludeFullGames=true&limit=100&cursor=" .. c)
-        )
+        HatchedMega=true
     end
-    local j = ""
-    if h.nextPageCursor and h.nextPageCursor ~= "null" and h.nextPageCursor ~= nil then
-        c = h.nextPageCursor
-    end
-    local k = 0
-    for l, m in pairs(h.data) do
-        local n = true
-        j = tostring(m.id)
-        if tonumber(m.maxPlayers) > tonumber(m.playing) then
-            for o, p in pairs(b) do
-                if k ~= 0 then
-                    if j == tostring(p) then
-                        n = false
-                    end
-                else
-                    if tonumber(d) ~= tonumber(p) then
-                        local q =
-                            pcall(
-                            function()
-                                delfile("NotSameServers.json")
-                                b = {}
-                                table.insert(b, d)
-                            end
-                        )
-                    end
-                end
-                k = k + 1
-            end
-            if n == true then
-                table.insert(b, j)
-                wait()
-                pcall(
-                    function()
-                        writefile("NotSameServers.json", f:JSONEncode(b))
-                        wait()
-                        game:GetService("TeleportService"):TeleportToPlaceInstance(a, j, game.Players.LocalPlayer)
-                    end
-                )
-                wait(4)
+end)
+Events.Minigames.Fishing.StartMinigame.OnClientInvoke = function()
+    task.wait(3)
+    return true
+end
+local function openLocation()
+    for i,v in next, workspace.BlockRegions:GetChildren() do
+        if v:GetAttribute("index")-1==#Savedata.Zones then
+            local neededZone = workspace.ZoneUnlock[v.Name]
+            if neededZone:GetAttribute("price")<=Savedata.Cash then
+                LocalPlayer.Character.HumanoidRootPart.CFrame = neededZone.Hitbox.CFrame
+                task.wait(1.25)
+                fireproximityprompt(neededZone.Hitbox.ProximityPrompt)
+                task.wait(1.25)
+                LocalPlayer.Character.HumanoidRootPart.CFrame = v.Teleport.CFrame
             end
         end
     end
+    task.wait(5)
 end
-function Teleport()
-    while wait() do
-        pcall(
-            function()
-                TPReturner()
-                if c ~= "" then
-                    TPReturner()
+
+local ViewportFolder, EggHatch = workspace.ViewportFolder, LocalPlayer.PlayerGui.EggHatch
+local eggs = {["Best Region"]={}, ["Current Region"]={}}
+local eggNames = {}
+table.foreach(workspace.Eggs:GetChildren(), function(i,v)eggs[v.Name]={price=v:GetAttribute("price"),zone=v:GetAttribute("zone"),model=v} end)
+table.foreach(eggs, function(i,v) eggNames[#eggNames+1]=v.name end)
+
+local zones = {["Best Region"]={}, ["Current Region"]={}}
+table.foreach(workspace.BlockRegions:GetChildren(), function(i,v)zones[v.Name]={name=v.Name, index=v:GetAttribute("index"),blocks=v.Player:FindFirstChild(LocalPlayer.Name)or nil} end)
+
+getgenv().dsad = getgenv().dsad and getgenv().dsad+1 or 1
+local sdsa = getgenv().dsad
+task.spawn(function()
+    local bestZone, currentZone = "Forest Digsite", "Forest Digsite"
+    while task.wait(1) and sdsa==getgenv().dsad do
+        Savedata = Events.Data.GetProfileData:InvokeServer()
+        bestZone, currentZone = Savedata.Zones[#Savedata.Zones], LocalPlayer.CurrentZone.Value.Name
+        zones["Best Region"] = zones[bestZone] or zones["Best Region"]
+        zones["Current Region"] = zones[currentZone] or zones["Current Region"]
+        for i,v in next, eggs do
+            eggs["Best Region"] = v.zone==bestZone and v or eggs["Best Region"]
+            eggs["Current Region"] = v.zone==currentZone and v or eggs["Current Region"]
+        end
+    end
+end)
+
+local Library = loadstring(game:HttpGet('https://raw.githubusercontent.com/ReimuSimpu/Lua-Shit/refs/heads/main/RayfieldForked.lua'))()
+local Rayfield = Library:CreateWindow({
+    ['Quotes'] = {
+        "Edited by max9598",
+    },
+    ['QuoteColors'] = {
+        Color3.fromRGB(255, 0, 255), 
+        Color3.fromRGB(29, 101, 255),
+    },
+    ['ConfigurationSaving'] = {['Enabled'] = true, ['FolderName'] = "ReimuSimpu", ['FileName'] = "Pet Mine"},
+    ['Name'] = "Any Name | " .. game:GetService("MarketplaceService"):GetProductInfo(game.PlaceId).Name,
+})
+
+local MainTab = Rayfield:CreateTab("Main", 10723407389)
+local EggsTab = Rayfield:CreateTab("Eggs", 10723345518)
+local ItemsTab = Rayfield:CreateTab("Items", 10709769841)
+local MiscTab = Rayfield:CreateTab("Misc", 10723395215)
+local SettingsTab = Rayfield:CreateTab("Settings", 10734950309)
+
+local MainParagraph = MainTab:CreateParagraph({Title = "Can put anything", Content = "Can put anything"})
+MainTab:CreateSection("Auto Farm")
+
+MainTab:CreateDropdown({
+    ['Name'] = "Selected Farm Region",
+    ['Options'] = {"VIP Digsite", "Best Region", "Current Region"},
+    ['CurrentOption'] = "Current Region",
+    ['MultipleOptions'] = false,
+    ['Flag'] = "Selected Farm Region",
+    Callback = function(Value)
+    end 
+})
+
+MainTab:CreateToggle({
+    Name = "Auto Pet Mine",
+    CurrentValue = false,
+    Flag = "Auto Pet Mine",
+    Callback = function(Value)
+        if Value then
+            while Library.Flags['Auto Pet Mine'].CurrentValue do
+                LocalPlayer.AutoFarm.Value = zones[Library.Flags['Selected Farm Region'].CurrentOption].name
+                task.wait(1)
+            end
+        end
+        LocalPlayer.AutoFarm.Value = ""
+    end,
+})
+
+MainTab:CreateToggle({
+    Name = "Auto Open Locations",
+    CurrentValue = false,
+    Flag = "Auto Open Locations",
+    Callback = function(Value)
+        if Value then
+            while task.wait() and Library.Flags['Auto Open Locations'].CurrentValue do
+                openLocation()
+            end
+        end
+    end,
+})
+
+MainTab:CreateLabel("-----------------------")
+
+MainTab:CreateButton({
+    ['Name'] = "Teleport to Fishing",
+    Callback = function()
+        if not LocalPlayer:FindFirstChild("IsInMinigame") or not LocalPlayer.IsInMinigame.Value then
+            LocalPlayer.Character.HumanoidRootPart.CFrame = workspace.Minigames.Fishing.CFrame
+        end
+    end,
+})
+
+EggsTab:CreateDropdown({
+    ['Name'] = "Selected Egg",
+    ['Options'] = {"Best Region", "Current Region", unpack(eggNames)},
+    ['CurrentOption'] = "Current Region",
+    ['MultipleOptions'] = false,
+    ['Flag'] = "Selected Egg",
+    Callback = function(Value)
+    end 
+})
+
+EggsTab:CreateToggle({
+    Name = "Auto Open Egg",
+    CurrentValue = false,
+    Flag = "Auto Open Egg",
+    Callback = function(Value)
+        if Value then
+            while task.wait(.1) and Library.Flags['Auto Open Egg'].CurrentValue do
+                local egg = eggs[Library.Flags['Selected Egg'].CurrentOption]
+                local canOpen = (#ViewportFolder:GetChildren()==0 and #EggHatch:GetChildren()==1 and LocalPlayer.PlayerGui.MainUI.Enabled)
+                if egg and egg.price <= Savedata.Cash and canOpen then
+                    if (LocalPlayer.Character.HumanoidRootPart.Position - egg.model.Sign.Position).Magnitude >= 10 then
+                        LocalPlayer.Character.HumanoidRootPart.CFrame = egg.model.Sign.CFrame * CFrame.new(0, 5, 0)
+                    end
+                    Events.Eggs.Hatch:FireServer(egg.model, LocalPlayer.upgrades.EggsMax.Value)
+                    task.wait(.25)
                 end
             end
-        )
+        end
+    end,
+})
+
+ItemsTab:CreateDropdown({
+    ['Name'] = "Selected Potion rank",
+    ['Options'] = {"I", "II", "III"},
+    ['CurrentOption'] = "",
+    ['MultipleOptions'] = false,
+    ['Flag'] = "PotRank",
+    Callback = function(Value)
+        if Value~="" then
+            local found, am = false, 0
+            for _, v in next, Savedata.Inventory do
+                if v.Name:find(("Potion %s"):format(Value)) and v.Name:split(("Potion %s"):format(Value))[2]=="" then
+                    for i=1,v.Count, 100 do
+                        Events.Potions.Consume:FireServer(v.Name, v.Count>100 and 100 or v.Count)
+                        task.wait(1)
+                    end
+                end
+            end
+        end
+    end 
+})
+
+MiscTab:CreateToggle({
+    Name = "Auto Missions",
+    CurrentValue = false,
+    Flag = "Auto Missions",
+    Callback = function(Value)
+        if Value then
+            while task.wait(0.1) and Library.Flags['Auto Missions'].CurrentValue do
+                for _, v in next, Savedata['Quests'] do
+                    if v.Type=="drinkpotion" then
+                        local found, am = false, 0
+                        for _, v in next, Savedata.Inventory do
+                            if v.Name:find("Potion I") then
+                                found,am=v.Name, v.Count
+                                break
+                            end
+                        end
+                        Events.Potions.Consume:FireServer(found, (am>=v.Goal and v.Goal or am))
+                        task.wait(1.25)
+                    elseif v.Type=="useexplosive" then
+                        local Block = zones["Current Region"].blocks:FindFirstChildWhichIsA("Model")
+                        if Block and Block.PrimaryPart then
+                            pcall(function() 
+                                LocalPlayer.Character.HumanoidRootPart.CFrame = Block.PrimaryPart.CFrame * CFrame.new(0, 10, 0)
+                            end)
+                            task.wait(0.25)
+                            for _=1, v.Goal do
+                                Events.Tools.BombServer:FireServer(Block.PrimaryPart.Position, "Dynamite")
+                                task.wait(0.1)
+                            end
+                            task.wait(0.25)
+                        end
+                        task.wait(1.25)
+                    end
+                end
+            end
+        end
+    end,
+})
+
+MiscTab:CreateToggle({
+    ['Name'] = "Auto Claim Rewards",
+    ['CurrentValue'] = false,
+    ['Flag'] = "Auto Claim Rewards",
+    Callback = function(Value)
+    end,
+})
+
+MiscTab:CreateDropdown({
+    ['Name'] = "Fishing Reward Multiplier",
+    ['Options'] = {"1", "5", "10", "20", "30", "40", "50", "60", "70", "80", "90", "100", "200", "500"},
+    ['CurrentOption'] = "1",
+    ['MultipleOptions'] = false,
+    ['Flag'] = "Fishing Reward Multiplier",
+    Callback = function(Value)
+        FishMult = tonumber(Value)
+    end 
+})
+
+SettingsTab:CreateSection("Client Settings")
+
+local DeleteConfig = SettingsTab:CreateButton({
+    ['Name'] = "Delete Config",
+    Callback = function()
+        delfile("ReimuSimpu/Pet Mine.json")
+    end,
+})
+
+local UIScale = SettingsTab:CreateInput({
+    ['Name'] = "Change UI Scale (0.3 - 3)",
+    ['CurrentValue'] = "1",
+    ['RemoveTextAfterFocusLost'] = false,
+    ['PlaceholderText'] = "1",
+    ['Flag'] = "UI Scale",
+
+    Callback = function(Text)
+        local Scale = tonumber(Text)
+        if Scale then
+            game:GetService("CoreGui").Rayfield.Main.UIScale.Scale = math.clamp(Scale, 0.3, 3)
+        end
     end
+})
+
+SettingsTab:CreateSection("Server Settings")
+
+local LowServer = SettingsTab:CreateButton({
+    ['Name'] = "Join Low-Player-Server",
+    Callback = function()
+        loadstring(game:HttpGet('https://raw.githubusercontent.com/ReimuSimpu/Lua-Shit/refs/heads/main/JoinLow.lua'))()
+    end,
+})
+
+local Rejoin = SettingsTab:CreateButton({
+    ['Name'] = "Rejoin Server",
+    Callback = function()
+        game:GetService("TeleportService"):TeleportToPlaceInstance(game.PlaceId, game.JobId, LocalPlayer)
+    end,
+})
+
+Library:LoadConfiguration()
+
+vu=game:GetService("VirtualUser")
+m_cons[#m_cons+1]=LocalPlayer.Idled:Connect(function()
+    vu:CaptureController()
+    vu:ClickButton2(Vector2.new())
+end)
+
+local HatchedMegaMsg = false
+local function form(num)
+    local a = tostring(num):reverse():gsub("(%d%d%d)", "%1,"):reverse()
+    return (a:split(",")[1]==""and a:gsub(",","",1) or a)
 end
-Teleport()
+task.spawn(function()
+    local LastCash, LastCrystals = Savedata.Cash or 0, Savedata.Crystals or 0
+    local LastClaim=os.clock()
+    while task.wait(1) and sdsa==getgenv().dsad do
+        local CurrentCash, CurrentCrystals = Savedata.Cash or 0, Savedata.Crystals or 0
+        MainParagraph:Set({
+            Title = "Statistics:",
+            Content = string.format(
+                "Cash: <font color='%s'>%s (%s/s)</font>\nCrystals: <font color='%s'>%s (%s/s)</font>",
+                "rgb(0, 255, 0)", form(CurrentCash), form(CurrentCash - LastCash), "rgb(255, 0, 255)", form(CurrentCrystals), form(CurrentCrystals - LastCrystals)
+            )
+        })
+        LastCash, LastCrystals = CurrentCash, CurrentCrystals
+        if Library.Flags['Auto Claim Rewards'].CurrentValue and os.clock()-LastClaim>5 then
+            Events.SeasonPass.ClaimAllRewards:InvokeServer()
+            LastClaim=os.clock()
+        end
+        if HatchedMega and not HatchedMegaMsg and DiscordUrl then
+            HatchedMegaMsg=true
+            request({Url = DiscordUrl, Method= "POST",Headers= {["Content-Type"]= "application/json"},Body= game.HttpService:JSONEncode({content= ("%s has hatched mega"):format(LocalPlayer.Name)})})
+            task.wait(2)
+        end
+    end
+end)
