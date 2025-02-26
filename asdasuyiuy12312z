@@ -1,4 +1,4 @@
-local DiscordUrl = true "https://discord.com/api/webhooks/1247275779264610335/CjQSwS1RUd1x3pWbWnECus2xbyCwT3-wNyXmmlQracT1dsZzPIHLSphzuTShrkDjQao5"
+local DiscordUrl = true--"https://discord.com/api/webhooks/1247275779264610335/CjQSwS1RUd1x3pWbWnECus2xbyCwT3-wNyXmmlQracT1dsZzPIHLSphzuTShrkDjQao5"
 
 repeat task.wait() until game:IsLoaded()
 local LocalPlayer = game:GetService("Players").LocalPlayer
@@ -271,7 +271,7 @@ local DeleteConfig = SettingsTab:CreateButton({
 
 local UIScale = SettingsTab:CreateInput({
     ['Name'] = "Change UI Scale (0.3 - 3)",
-    ['CurrentValue'] = "1",
+    ['CurrentValue'] = ".8",
     ['RemoveTextAfterFocusLost'] = false,
     ['PlaceholderText'] = "1",
     ['Flag'] = "UI Scale",
