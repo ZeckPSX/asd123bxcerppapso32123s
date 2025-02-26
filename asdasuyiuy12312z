@@ -1,4 +1,4 @@
-local DiscordUrl = true--"https://discord.com/api/webhooks/1247275779264610335/CjQSwS1RUd1x3pWbWnECus2xbyCwT3-wNyXmmlQracT1dsZzPIHLSphzuTShrkDjQao5"
+local DiscordUrl = false--"https://discord.com/api/webhooks/xxxxxxxxxxxxxxx/xxxxxxxxxxxxxxx-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
 
 repeat task.wait() until game:IsLoaded()
 local LocalPlayer = game:GetService("Players").LocalPlayer
