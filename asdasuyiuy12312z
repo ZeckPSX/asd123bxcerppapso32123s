@@ -20,7 +20,8 @@ end
 FishMegas=getMegas()
 local FishMult = 1
 local HatchedMega = false
-pcall(function() Events.Notify.Item:Destroy() end)
+pcall(function()Events.Notify.Item:Destroy()end)
+pcall(function()Events.AFK.Request:Destroy()end)
 LocalPlayer.upgrades.Magnet.Value=9e9
 getgenv().m_cons = m_cons and m_cons or {}
 table.foreach(m_cons,function(i,v)v:Disconnect()end)
@@ -37,12 +38,27 @@ Events.Minigames.Fishing.StartMinigame.OnClientInvoke = function()
     task.wait(3)
     return true
 end
+local function openLocation()
+    for i,v in next, workspace.BlockRegions:GetChildren() do
+        if v:GetAttribute("index")-1==#Savedata.Zones then
+            local neededZone = workspace.ZoneUnlock[v.Name]
+            if neededZone:GetAttribute("price")<=Savedata.Cash then
+                LocalPlayer.Character.HumanoidRootPart.CFrame = neededZone.Hitbox.CFrame
+                task.wait(1.25)
+                fireproximityprompt(neededZone.Hitbox.ProximityPrompt)
+                task.wait(1.25)
+                LocalPlayer.Character.HumanoidRootPart.CFrame = v.Teleport.CFrame
+            end
+        end
+    end
+    task.wait(5)
+end
 
 local ViewportFolder, EggHatch = workspace.ViewportFolder, LocalPlayer.PlayerGui.EggHatch
 local eggs = {["Best Region"]={}, ["Current Region"]={}}
 local eggNames = {}
-table.foreach(workspace.Eggs:GetChildren(), function(i,v)eggs[v.Name]={price=v:GetAttribute("price"),zone=v:GetAttribute("zone"),model=v} end)
-table.foreach(eggs, function(i,v) eggNames[#eggNames+1]=v.name end)
+table.foreach(workspace.Eggs:GetChildren(), function(i,v)eggs[v:GetAttribute("zone")]={name=v.Name,price=v:GetAttribute("price"),zone=v:GetAttribute("zone"),model=v} end)
+table.foreach(eggs, function(i,v) eggNames[#eggNames+1]=v.zone end)
 
 local zones = {["Best Region"]={}, ["Current Region"]={}}
 table.foreach(workspace.BlockRegions:GetChildren(), function(i,v)zones[v.Name]={name=v.Name, index=v:GetAttribute("index"),blocks=v.Player:FindFirstChild(LocalPlayer.Name)or nil} end)
@@ -51,7 +67,7 @@ getgenv().dsad = getgenv().dsad and getgenv().dsad+1 or 1
 local sdsa = getgenv().dsad
 task.spawn(function()
     local bestZone, currentZone = "Forest Digsite", "Forest Digsite"
-    while task.wait(0.25) and sdsa==getgenv().dsad do
+    while task.wait(1) and sdsa==getgenv().dsad do
         Savedata = Events.Data.GetProfileData:InvokeServer()
         bestZone, currentZone = Savedata.Zones[#Savedata.Zones], LocalPlayer.CurrentZone.Value.Name
         zones["Best Region"] = zones[bestZone] or zones["Best Region"]
@@ -110,6 +126,19 @@ MainTab:CreateToggle({
     end,
 })
 
+MainTab:CreateToggle({
+    Name = "Auto Open Locations",
+    CurrentValue = false,
+    Flag = "Auto Open Locations",
+    Callback = function(Value)
+        if Value then
+            while task.wait() and Library.Flags['Auto Open Locations'].CurrentValue do
+                openLocation()
+            end
+        end
+    end,
+})
+
 MainTab:CreateLabel("-----------------------")
 
 MainTab:CreateButton({
@@ -138,6 +167,7 @@ EggsTab:CreateToggle({
     Callback = function(Value)
         if Value then
             while task.wait(.1) and Library.Flags['Auto Open Egg'].CurrentValue do
+                print('k')
                 local egg = eggs[Library.Flags['Selected Egg'].CurrentOption]
                 local canOpen = (#ViewportFolder:GetChildren()==0 and #EggHatch:GetChildren()==1 and LocalPlayer.PlayerGui.MainUI.Enabled)
                 if egg and egg.price <= Savedata.Cash and canOpen then
@@ -165,6 +195,7 @@ ItemsTab:CreateDropdown({
                 if v.Name:find(("Potion %s"):format(Value)) and v.Name:split(("Potion %s"):format(Value))[2]=="" then
                     for i=1,v.Count, 100 do
                         Events.Potions.Consume:FireServer(v.Name, v.Count>100 and 100 or v.Count)
+                        task.wait(1)
                     end
                 end
             end
@@ -199,6 +230,7 @@ MiscTab:CreateToggle({
                             task.wait(0.25)
                             for _=1, v.Goal do
                                 Events.Tools.BombServer:FireServer(Block.PrimaryPart.Position, "Dynamite")
+                                task.wait(0.1)
                             end
                             task.wait(0.25)
                         end
@@ -240,7 +272,7 @@ local DeleteConfig = SettingsTab:CreateButton({
 
 local UIScale = SettingsTab:CreateInput({
     ['Name'] = "Change UI Scale (0.3 - 3)",
-    ['CurrentValue'] = ".8",
+    ['CurrentValue'] = "1",
     ['RemoveTextAfterFocusLost'] = false,
     ['PlaceholderText'] = "1",
     ['Flag'] = "UI Scale",
@@ -278,7 +310,10 @@ m_cons[#m_cons+1]=LocalPlayer.Idled:Connect(function()
 end)
 
 local HatchedMegaMsg = false
-local function form(num) return tostring(num):reverse():gsub("(%d%d%d)", "%1,"):reverse() end
+local function form(num)
+    local a = tostring(num):reverse():gsub("(%d%d%d)", "%1,"):reverse()
+    return (a:split(",")[1]==""and a:gsub(",","",1) or a)
+end
 task.spawn(function()
     local LastCash, LastCrystals = Savedata.Cash or 0, Savedata.Crystals or 0
     local LastClaim=os.clock()
@@ -294,6 +329,7 @@ task.spawn(function()
         LastCash, LastCrystals = CurrentCash, CurrentCrystals
         if Library.Flags['Auto Claim Rewards'].CurrentValue and os.clock()-LastClaim>5 then
             Events.SeasonPass.ClaimAllRewards:InvokeServer()
+            Events.SeasonPass.RequestReboot:FireServer()
             LastClaim=os.clock()
         end
         if HatchedMega and not HatchedMegaMsg and DiscordUrl then
