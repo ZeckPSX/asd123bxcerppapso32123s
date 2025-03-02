@@ -317,6 +317,7 @@ end
 task.spawn(function()
     local LastCash, LastCrystals = Savedata.Cash or 0, Savedata.Crystals or 0
     local LastClaim=os.clock()
+    local LastClaim2=os.clock()-60
     while task.wait(1) and sdsa==getgenv().dsad do
         local CurrentCash, CurrentCrystals = Savedata.Cash or 0, Savedata.Crystals or 0
         MainParagraph:Set({
@@ -327,10 +328,19 @@ task.spawn(function()
             )
         })
         LastCash, LastCrystals = CurrentCash, CurrentCrystals
-        if Library.Flags['Auto Claim Rewards'].CurrentValue and os.clock()-LastClaim>5 then
-            Events.SeasonPass.ClaimAllRewards:InvokeServer()
-            Events.SeasonPass.RequestReboot:FireServer()
+        if Library.Flags['Auto Claim Rewards'].CurrentValue and os.clock()-LastClaim>10 then
             LastClaim=os.clock()
+            task.spawn(function()
+                if os.clock()-LastClaim2>60 then
+                    LastClaim2=os.clock()
+                    for _=1,13 do
+                        Events.Rewards.FreeGifts.RequestClaim:InvokeServer(_)
+                        task.wait(.1)
+                    end
+                end
+                Events.SeasonPass.ClaimAllRewards:InvokeServer()
+                Events.SeasonPass.RequestReboot:FireServer()
+            end)
         end
         if HatchedMega and not HatchedMegaMsg and DiscordUrl then
             HatchedMegaMsg=true
