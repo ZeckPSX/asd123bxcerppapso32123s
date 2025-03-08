@@ -350,9 +350,5 @@ task.spawn(function()
     end
 end)
 
-settings().Physics.PhysicsEnvironmentalThrottle = 1
-settings().Rendering.QualityLevel = 'Level01'
-UserSettings():GetService('UserGameSettings').MasterVolume = 0
-game:GetService("Lighting").GlobalShadows = false
-game:GetService("RunService"):Set3dRenderingEnabled(false)
+
 
