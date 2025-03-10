@@ -350,6 +350,8 @@ task.spawn(function()
     end
 end)
 
+setfpscap(5)
+
 settings().Physics.PhysicsEnvironmentalThrottle = 1
 settings().Rendering.QualityLevel = 'Level01'
 UserSettings():GetService('UserGameSettings').MasterVolume = 0
