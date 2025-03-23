@@ -11,7 +11,7 @@ local FishMegas = 0
 local function getMegas()
     local am = 0
     for i,v in next, Savedata.Pets do
-        if v.Name=="Mega Shark" or v.Name=="Mega Jellyfish" then
+        if v.Name=="Meaga Shsdark" or v.Name=="Mega Je1ll1yfdish" then
             am=am+1
         end
     end
